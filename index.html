@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדריך שידורים ישראלי</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>מדריך שידורים</h1>
+            <div class="time-control">
+                <button id="prev-hour">-1 שעה</button>
+                <span id="current-time-display">20:00</span>
+                <button id="next-hour">+1 שעה</button>
+            </div>
+            <input type="range" id="time-slider" min="0" max="1439" step="15" value="1200">
+        </header>
+
+        <main id="channels-container">
+            <!-- Channels will be injected here -->
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('SW registered', reg))
+                .catch(err => console.error('SW failed', err));
+        }
+    </script>
+</body>
+</html>
