@@ -10,7 +10,13 @@ async function scrapeChannels() {
     console.log('Starting scraper...');
     const browser = await puppeteer.launch({
         headless: "new",
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-blink-features=AutomationControlled',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process'
+            ]
     });
 
     try {
@@ -165,5 +171,6 @@ async function autoScroll(page) {
 }
 
 scrapeChannels();
+
 
 
