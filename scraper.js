@@ -1,4 +1,6 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
 const fs = require('fs').promises;
 
 const TARGET_URL = 'https://www.hot.net.il/heb/tv/tvguide/';
@@ -163,4 +165,5 @@ async function autoScroll(page) {
 }
 
 scrapeChannels();
+
 
