@@ -21,6 +21,10 @@ async function scrapeChannels() {
         await page.setViewport({ width: 1920, height: 1080 });
 
         console.log(`Navigating to ${TARGET_URL}...`);
+        // Add extra headers to avoid blocking
+        await page.setExtraHTTPHeaders({
+        'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7'
+    });
         await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 60000 });
 
         // Wait for the schedule table to load
@@ -159,3 +163,4 @@ async function autoScroll(page) {
 }
 
 scrapeChannels();
+
