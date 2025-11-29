@@ -1,12 +1,9 @@
 {
-    "name": "tv-guide-scraper",
-    "version": "1.0.0",
-    "description": "Daily TV schedule scraper",
-    "main": "scraper.js",
-    "scripts": {
-        "start": "node scraper.js"
-    },
-    "dependencies": {
-        "puppeteer": "^21.11.0"
-    }
+  "name": "tv-guide",
+  "version": "1.0.0",
+  "dependencies": {
+    "puppeteer": "^21.11.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
 }
