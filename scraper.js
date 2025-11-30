@@ -1,17 +1,22 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs').promises;
+
+// Add stealth plugin and use defaults (all evasion techniques)
+puppeteer.use(StealthPlugin());
 
 const TARGET_URL = 'https://www.hot.net.il/heb/tv/tvguide/';
 const CHANNELS_TO_SCRAPE = ['11', '12', '13', '14'];
 
 async function scrapeChannels() {
-    console.log('Starting scraper...');
+    console.log('Starting scraper with Stealth Mode...');
+    
     const browser = await puppeteer.launch({
         headless: "new",
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--lang=he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7' // Set browser language
+            '--lang=he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7'
         ],
         ignoreHTTPSErrors: true
     });
@@ -19,22 +24,20 @@ async function scrapeChannels() {
     try {
         const page = await browser.newPage();
 
-        // Set a realistic desktop user agent and extra headers
+        // Even with stealth, setting a good User Agent is important
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        
         await page.setExtraHTTPHeaders({
             'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Referer': 'https://www.google.com/'
         });
 
-        // Set a reasonable viewport
         await page.setViewport({ width: 1920, height: 1080 });
 
         console.log(`Navigating to ${TARGET_URL}...`);
-        // Increased timeout to 90 seconds just in case
         await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 90000 });
 
-        // Wait for the schedule table to load
         try {
             await page.waitForSelector('.scheduleTable', { timeout: 30000 });
         } catch (e) {
@@ -42,10 +45,7 @@ async function scrapeChannels() {
         }
 
         console.log('Page loaded. Scrolling to load all channels...');
-
-        // Scroll down to trigger lazy loading
         await autoScroll(page);
-
         console.log('Finished scrolling. Extracting data...');
 
         const scheduleData = await page.evaluate((channelsToScrape) => {
@@ -53,40 +53,32 @@ async function scrapeChannels() {
             const channelContainers = document.querySelectorAll('.scheduleChannel');
 
             channelContainers.forEach(container => {
-                // Find channel number
                 const numEl = container.querySelector('.scheduleChannel_num b');
                 if (!numEl) return;
 
                 const channelNum = numEl.textContent.trim();
-
-                // Check if this is one of the channels we want
                 if (!channelsToScrape.includes(channelNum)) return;
 
-                // Find all program items
                 const items = container.querySelectorAll('.scheduleChannel_item');
-
                 items.forEach(item => {
                     const titleEl = item.querySelector('span');
                     const timeEl = item.querySelector('strong');
 
                     if (titleEl && timeEl) {
                         const title = titleEl.textContent.trim();
-                        const timeRange = timeEl.textContent.trim(); // Format: "HH:MM - HH:MM"
-
-                        // Parse time range
+                        const timeRange = timeEl.textContent.trim();
                         const times = timeRange.split('-').map(t => t.trim());
                         if (times.length === 2) {
                             results.push({
                                 channel: channelNum,
                                 title: title,
-                                rawTime: times[0], // Start time HH:MM
-                                rawEndTime: times[1] // End time HH:MM
+                                rawTime: times[0],
+                                rawEndTime: times[1]
                             });
                         }
                     }
                 });
             });
-
             return results;
         }, CHANNELS_TO_SCRAPE);
 
@@ -96,18 +88,15 @@ async function scrapeChannels() {
             throw new Error('No data extracted! The page might not have loaded correctly.');
         }
 
-        // Normalize data (convert to ISO dates, handle day crossovers)
         const normalizedData = normalizeSchedule(scheduleData);
-
         console.log(`Normalized ${normalizedData.length} programs.`);
 
-        // Save to file
         await fs.writeFile('schedule.json', JSON.stringify(normalizedData, null, 2));
         console.log('Successfully saved to schedule.json');
 
     } catch (error) {
         console.error('Error during scraping:', error);
-        process.exit(1); // Exit with error code so GitHub Action fails
+        process.exit(1);
     } finally {
         await browser.close();
     }
@@ -123,7 +112,6 @@ function normalizeSchedule(rawItems) {
             const [startHours, startMinutes] = item.rawTime.split(':').map(Number);
             const [endHours, endMinutes] = item.rawEndTime.split(':').map(Number);
 
-            // Create Date objects
             const startTime = new Date(today);
             startTime.setHours(startHours, startMinutes, 0, 0);
 
@@ -170,7 +158,6 @@ async function autoScroll(page) {
             }, 100);
         });
     });
-    // Wait a bit more for final renders
     await new Promise(r => setTimeout(r, 2000));
 }
 
