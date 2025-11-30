@@ -1,6 +1,4 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
+const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 
 const TARGET_URL = 'https://www.hot.net.il/heb/tv/tvguide/';
@@ -11,29 +9,30 @@ async function scrapeChannels() {
     const browser = await puppeteer.launch({
         headless: "new",
         args: [
-            '--no-sandbox',
+            '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process'
-            ]
+            '--lang=he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7' // Set browser language
+        ],
+        ignoreHTTPSErrors: true
     });
 
     try {
         const page = await browser.newPage();
 
-        // Set a desktop user agent
+        // Set a realistic desktop user agent and extra headers
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Referer': 'https://www.google.com/'
+        });
 
         // Set a reasonable viewport
         await page.setViewport({ width: 1920, height: 1080 });
 
         console.log(`Navigating to ${TARGET_URL}...`);
-        // Add extra headers to avoid blocking
-        await page.setExtraHTTPHeaders({
-        'Accept-Language': 'he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7'
-    });
-        await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 60000 });
+        // Increased timeout to 90 seconds just in case
+        await page.goto(TARGET_URL, { waitUntil: 'networkidle2', timeout: 90000 });
 
         // Wait for the schedule table to load
         try {
@@ -93,6 +92,10 @@ async function scrapeChannels() {
 
         console.log(`Extracted ${scheduleData.length} raw programs.`);
 
+        if (scheduleData.length === 0) {
+            throw new Error('No data extracted! The page might not have loaded correctly.');
+        }
+
         // Normalize data (convert to ISO dates, handle day crossovers)
         const normalizedData = normalizeSchedule(scheduleData);
 
@@ -104,6 +107,7 @@ async function scrapeChannels() {
 
     } catch (error) {
         console.error('Error during scraping:', error);
+        process.exit(1); // Exit with error code so GitHub Action fails
     } finally {
         await browser.close();
     }
@@ -171,6 +175,3 @@ async function autoScroll(page) {
 }
 
 scrapeChannels();
-
-
-
